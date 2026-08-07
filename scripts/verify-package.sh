@@ -76,9 +76,9 @@ import {
   type Argon2Binding,
   type TokenStore,
   type StoredToken,
-} from "@stonedogcode/auth";
-import { nodeRsArgon2 } from "@stonedogcode/auth/argon2-node-rs";
-import { nativeArgon2 } from "@stonedogcode/auth/argon2-native";
+} from "stonedog-auth";
+import { nodeRsArgon2 } from "stonedog-auth/argon2-node-rs";
+import { nativeArgon2 } from "stonedog-auth/argon2-native";
 import * as argon2 from "@node-rs/argon2";
 
 const binding: Argon2Binding = nodeRsArgon2(argon2);

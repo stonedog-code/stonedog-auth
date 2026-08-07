@@ -1,5 +1,5 @@
 {
-  "name": "@stonedogcode/auth",
+  "name": "stonedog-auth",
   "version": "0.1.0",
   "description": "Authentication factor primitives: password, PIN, TOTP, WebAuthn challenges and single-use emailed tokens. No storage, no transport, no framework.",
   "license": "Apache-2.0",
@@ -10,7 +10,7 @@
   },
   "type": "module",
   "sideEffects": false,
-  "//exports": "TypeScript SOURCE rather than a bundled dist/, matching @stonedogcode/howto and stonedog-style. The argon2 adapters are separate entry points so a consumer that never builds a password factor never resolves a binding it has not installed.",
+  "//exports": "TypeScript SOURCE rather than a bundled dist/, matching stonedog-howto and stonedog-style. The argon2 adapters are separate entry points so a consumer that never builds a password factor never resolves a binding it has not installed.",
   "exports": {
     ".": "./src/index.ts",
     "./argon2-node-rs": "./src/argon2/nodeRs.ts",
