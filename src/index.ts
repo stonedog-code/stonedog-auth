@@ -1,5 +1,5 @@
 /**
- * @stonedogcode/auth — authentication factor primitives.
+ * stonedog-auth — authentication factor primitives.
  *
  * Not a framework, not a session manager, and not a replacement for NextAuth.
  * It is the layer underneath: the parts of password, PIN, TOTP, WebAuthn and
