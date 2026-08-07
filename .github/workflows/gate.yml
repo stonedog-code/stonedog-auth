@@ -52,25 +52,11 @@ jobs:
       # so `files`, the `exports` map and the tarball contents are what a
       # consumer actually receives — and they break at publish time, after
       # review, on a version number that can never be reused.
-      - name: The tarball is what a consumer gets
-        run: |
-          set -euo pipefail
-          npm pack --silent >/dev/null
-          tarball=$(ls stonedogcode-auth-*.tgz)
-          contents=$(tar -tzf "$tarball")
-
-          echo "$contents" | grep -q 'package/src/index.ts'
-          echo "$contents" | grep -q 'package/src/argon2/nodeRs.ts'
-          echo "$contents" | grep -q 'package/src/argon2/native.ts'
-          echo "$contents" | grep -q 'package/LICENSE'
-          echo "$contents" | grep -q 'package/NOTICE'
-
-          # Tests must NOT ship. They import jest globals, so a consumer
-          # compiling our source under their own config would fail on them.
-          if echo "$contents" | grep -q '__tests__'; then
-            echo "tarball contains tests" >&2
-            exit 1
-          fi
+      #
+      # This packs it, installs the tarball into a throwaway project, and
+      # type-checks and RUNS it as a consumer would — including against a real
+      # Argon2 binding, which is the one claim a type-check cannot verify.
+      - run: npm run verify:package
 
       # A secret must never reach a log, and an auth library is the worst place
       # for a debug-time string to survive. Scan the shipped source for the

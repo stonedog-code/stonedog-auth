@@ -33,8 +33,11 @@
     "gate": "npm run type-check && npm run lint && npm run test",
     "audit": "npm audit --audit-level=moderate",
     "version:bump:patch": "npm version patch --no-git-tag-version",
-    "version:bump:minor": "npm version minor --no-git-tag-version"
+    "version:bump:minor": "npm version minor --no-git-tag-version",
+    "verify:package": "bash scripts/verify-package.sh",
+    "publish:stonedog-auth": "bash scripts/publish-package.sh"
   },
+  "//publish:stonedog-auth": "Run from a terminal, interactively — npm prompts for the 2FA one-time password and the login flow needs a browser. It refuses a checkout that is detached, dirty, or behind origin/main; refuses a version already published; refuses a tarball missing an entry point, the NOTICE, or containing tests; refuses any runtime dependency at all, and refuses either argon2 binding being anything but an optional peer. Then it proves the result by installing from the registry into a temp directory and checking that installing alone pulls in NO argon2 binding.",
   "//dependencies": "There are none, and that is a deliberate property rather than a coincidence. Everything here is node:crypto or arithmetic. A package that sits on the sign-in path of four products should be auditable in an afternoon, and every dependency it takes is one every consumer inherits on that path.",
   "devDependencies": {
     "@eslint/js": "^9.39.5",
