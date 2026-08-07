@@ -1,4 +1,4 @@
-# stonedog-auth
+# @stonedogcode/auth
 
 Authentication **factor primitives**: password, PIN, TOTP, WebAuthn challenges,
 and single-use emailed tokens.
@@ -8,7 +8,7 @@ use to hold a session. It is the layer underneath — the parts that are identic
 in every application and dangerous to write twice.
 
 ```bash
-npm install stonedog-auth
+npm install @stonedogcode/auth
 ```
 
 ---
@@ -67,8 +67,8 @@ entry points. You install whichever suits your runtime image, or neither.
 ## Passwords
 
 ```ts
-import { createPasswordFactor } from "stonedog-auth";
-import { nodeRsArgon2 } from "stonedog-auth/argon2-node-rs";
+import { createPasswordFactor } from "@stonedogcode/auth";
+import { nodeRsArgon2 } from "@stonedogcode/auth/argon2-node-rs";
 import * as argon2 from "@node-rs/argon2";
 
 const passwords = createPasswordFactor({ argon2: nodeRsArgon2(argon2) });
@@ -109,7 +109,7 @@ defence**, and `createPinFactor` refuses to be constructed without one. It is
 the only mandatory dependency in this package.
 
 ```ts
-import { createAttemptLimiter, createPinFactor, pinLockoutPolicy } from "stonedog-auth";
+import { createAttemptLimiter, createPinFactor, pinLockoutPolicy } from "@stonedogcode/auth";
 
 const limiter = createAttemptLimiter({ store: yourAttemptStore, policy: pinLockoutPolicy });
 const pins = createPinFactor({ argon2: nodeRsArgon2(argon2), limiter });
@@ -128,7 +128,7 @@ attempt limit far less protective than its number suggests.
 ## TOTP
 
 ```ts
-import { createTotpFactor, generateTotpSecret, totpProvisioningUri } from "stonedog-auth";
+import { createTotpFactor, generateTotpSecret, totpProvisioningUri } from "@stonedogcode/auth";
 
 const secret = generateTotpSecret();
 const uri = totpProvisioningUri(secret, { account: email, issuer: "Example" });
@@ -159,7 +159,7 @@ One mechanism, different `kind`. Two copies of "spend this exactly once" is two
 places for a replay bug to live.
 
 ```ts
-import { createTokenIssuer } from "stonedog-auth";
+import { createTokenIssuer } from "@stonedogcode/auth";
 
 const tokens = createTokenIssuer({ store: yourTokenStore });
 const { token } = await tokens.issue(userId, "magic-link");   // email this, never store it
@@ -196,7 +196,7 @@ short-lived, and spent exactly once. Every one of those is a property of storage
 and time, which a verification library cannot enforce for you.
 
 ```ts
-import { createWebAuthnChallenges } from "stonedog-auth";
+import { createWebAuthnChallenges } from "@stonedogcode/auth";
 
 const challenges = createWebAuthnChallenges({ store: yourChallengeStore });
 const challenge = await challenges.issue(userId, "authentication");
