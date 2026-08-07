@@ -1,0 +1,81 @@
+{
+  "name": "@stonedogcode/auth",
+  "version": "0.1.0",
+  "description": "Authentication factor primitives: password, PIN, TOTP, WebAuthn challenges and single-use emailed tokens. No storage, no transport, no framework.",
+  "license": "Apache-2.0",
+  "author": "StoneDogCode L.L.C.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stonedog-code/stonedog-auth.git"
+  },
+  "type": "module",
+  "sideEffects": false,
+  "//exports": "TypeScript SOURCE rather than a bundled dist/, matching @stonedogcode/howto and stonedog-style. The argon2 adapters are separate entry points so a consumer that never builds a password factor never resolves a binding it has not installed.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./argon2-node-rs": "./src/argon2/nodeRs.ts",
+    "./argon2-native": "./src/argon2/native.ts",
+    "./package.json": "./package.json"
+  },
+  "//files": "The __tests__ exclusion is load-bearing rather than tidiness: anything shipped under src/ is compiled by the CONSUMER, and the tests import jest globals. They would also ship a suite nobody can run to every consumer.",
+  "files": [
+    "src",
+    "!src/**/__tests__/**",
+    "LICENSE",
+    "NOTICE",
+    "README.md"
+  ],
+  "scripts": {
+    "type-check": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest",
+    "test:coverage": "NODE_OPTIONS=--experimental-vm-modules jest --coverage",
+    "gate": "npm run type-check && npm run lint && npm run test",
+    "audit": "npm audit --audit-level=moderate",
+    "version:bump:patch": "npm version patch --no-git-tag-version",
+    "version:bump:minor": "npm version minor --no-git-tag-version"
+  },
+  "//dependencies": "There are none, and that is a deliberate property rather than a coincidence. Everything here is node:crypto or arithmetic. A package that sits on the sign-in path of four products should be auditable in an afternoon, and every dependency it takes is one every consumer inherits on that path.",
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "@node-rs/argon2": "^2.0.2",
+    "@types/jest": "^29.5.14",
+    "@types/node": "^22.10.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "argon2": "^0.45.1",
+    "eslint": "^9.17.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.4.11",
+    "typescript": "^5.9.3"
+  },
+  "//peerDependencies": "Both argon2 bindings are optional. Which one works is decided by the runtime image — a node-gyp build needs a toolchain an Alpine image does not carry — and the two are interoperable because both emit the standard PHC string. A consumer installs whichever suits its image, or neither.",
+  "peerDependencies": {
+    "@node-rs/argon2": ">=2",
+    "argon2": ">=0.31"
+  },
+  "peerDependenciesMeta": {
+    "@node-rs/argon2": {
+      "optional": true
+    },
+    "argon2": {
+      "optional": true
+    }
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "authentication",
+    "argon2",
+    "totp",
+    "webauthn",
+    "passkey",
+    "magic-link",
+    "two-factor"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "//publishConfig": "A scoped package defaults to RESTRICTED on npm, which needs a paid plan and would fail the publish. Declaring it here means the intent travels with the manifest rather than depending on someone remembering --access public."
+}

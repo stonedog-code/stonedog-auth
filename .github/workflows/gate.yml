@@ -1,0 +1,85 @@
+name: gate
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # `npm ci` rather than `npm install`: it installs exactly the lockfile and
+      # fails when package.json and the lockfile have drifted, which is the one
+      # check a local `npm install` can never perform — it repairs the drift
+      # silently instead.
+      #
+      # This also installs BOTH argon2 bindings, including the node-gyp one.
+      # That is deliberate: the integration tier's whole purpose is asserting
+      # the two interoperate, and a CI that quietly skipped it would leave the
+      # package's central migration claim untested.
+      - run: npm ci
+
+      - run: npm run type-check
+
+      # No `--fix` anywhere in CI. A lint step that repairs the tree hides from
+      # review the errors review exists to catch, and leaves the repair
+      # uncommitted so the same error returns on the next checkout.
+      - run: npm run lint
+
+      # Coverage thresholds are enforced here, not just measured. In an auth
+      # library the uncovered branch is, by construction, a rejection path.
+      - run: npm run test:coverage
+
+      # A green gate that examined nothing is the failure this guards against:
+      # ESLint exits 0 while reporting "File ignored by default" for anything
+      # under a dot-directory, and a testMatch resolving to no files also exits
+      # 0. Both read as "clean".
+      - name: Prove the gate was not vacuous
+        run: |
+          linted=$(npx eslint . -f json | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>console.log(JSON.parse(s).length))')
+          echo "eslint examined $linted files"
+          test "$linted" -ge 10
+
+      # The one thing every check above is blind to: this package ships source,
+      # so `files`, the `exports` map and the tarball contents are what a
+      # consumer actually receives — and they break at publish time, after
+      # review, on a version number that can never be reused.
+      - name: The tarball is what a consumer gets
+        run: |
+          set -euo pipefail
+          npm pack --silent >/dev/null
+          tarball=$(ls stonedogcode-auth-*.tgz)
+          contents=$(tar -tzf "$tarball")
+
+          echo "$contents" | grep -q 'package/src/index.ts'
+          echo "$contents" | grep -q 'package/src/argon2/nodeRs.ts'
+          echo "$contents" | grep -q 'package/src/argon2/native.ts'
+          echo "$contents" | grep -q 'package/LICENSE'
+          echo "$contents" | grep -q 'package/NOTICE'
+
+          # Tests must NOT ship. They import jest globals, so a consumer
+          # compiling our source under their own config would fail on them.
+          if echo "$contents" | grep -q '__tests__'; then
+            echo "tarball contains tests" >&2
+            exit 1
+          fi
+
+      # A secret must never reach a log, and an auth library is the worst place
+      # for a debug-time string to survive. Scan the shipped source for the
+      # shapes that would do it.
+      - name: No logging in shipped source
+        run: |
+          set -euo pipefail
+          if grep -rnE 'console\.(log|info|warn|error|debug)' src --include='*.ts' \
+               | grep -v '__tests__'; then
+            echo "shipped source writes to the console" >&2
+            exit 1
+          fi

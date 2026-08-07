@@ -1,0 +1,21 @@
+{
+  "//strictness": "noUncheckedIndexedAccess and exactOptionalPropertyTypes are held for the same reason stonedog-style and @stonedogcode/howto hold them: this package ships SOURCE, so consumers type-check OUR code under THEIR config. A flag we do not hold becomes a build error in a repo that does not own the offending line. (This note is at the top level because tsc rejects unknown keys inside compilerOptions.)",
+  "compilerOptions": {
+    "target": "ESNext",
+    "lib": ["esnext"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noEmit": true,
+    "declaration": true,
+    "esModuleInterop": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "types": ["node", "jest"]
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist", "coverage"]
+}
