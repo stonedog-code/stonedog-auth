@@ -1,5 +1,5 @@
 /**
- * Argon2 via `@node-rs/argon2` (`stonedog-auth/argon2-node-rs`).
+ * Argon2 via `@node-rs/argon2` (`@stonedogcode/auth/argon2-node-rs`).
  *
  * Use this when the runtime image has **no build toolchain** — an Alpine
  * container, or anywhere `npm ci` must not invoke node-gyp. This binding

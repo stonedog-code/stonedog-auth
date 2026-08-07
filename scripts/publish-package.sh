@@ -2,7 +2,7 @@
 # Copyright (C) 2026 StoneDogCode L.L.C.
 # SPDX-License-Identifier: Apache-2.0
 #
-# Publish stonedog-auth to npm, end to end.
+# Publish @stonedogcode/auth to npm, end to end.
 #
 #   npm run publish:stonedog-auth
 #
@@ -11,7 +11,7 @@
 # human — neither works unattended, which is why this is a script you run
 # rather than a step in CI.
 #
-# Modelled on stonedog-style's and stonedog-howto's scripts of the same
+# Modelled on stonedog-style's and @stonedogcode/howto's scripts of the same
 # name, and it keeps their central lesson: a publish that prints no error can
 # still have published nothing, or the wrong thing. So this reads the tarball
 # before publishing and installs from the registry afterwards, because "the
@@ -20,12 +20,12 @@
 #
 # ## The traps specific to THIS package
 #
-# 0. **The name is UNSCOPED.** `stonedog-auth`, not `@stonedogcode/auth`,
-#    matching stonedog-style, stonedog-theme and stonedog-rbac. It was published
-#    scoped once, on 2026-08-07, and unscoped the same day (NEH-482) before
-#    anything depended on it; `@stonedogcode/auth@0.1.0` is deprecated and
-#    points here. An unscoped name is first-come-first-served across the whole
-#    registry, so the first publish is also the claim — checked below.
+# 0. **The name is SCOPED, and that is settled.** It was briefly renamed to the
+#    unscoped `stonedog-auth` on 2026-08-07 to match stonedog-style/theme/rbac,
+#    then reverted the same day when the decision went the other way: all five
+#    shared packages scope under @stonedogcode (NEH-482). The rename never
+#    reached the registry, so `stonedog-auth` does not exist and nothing
+#    depended on it. Do not redo it.
 #
 # 1. **Zero runtime dependencies is a claim the README makes**, and it is the
 #    reason a consumer is asked to put this on their sign-in path at all. A
@@ -51,7 +51,7 @@
 #    and consumers compile our source under their own config.
 set -euo pipefail
 
-PACKAGE_NAME="stonedog-auth"
+PACKAGE_NAME="@stonedogcode/auth"
 # Sanity floor. Comfortably under the real count (15) so ordinary growth does
 # not trip it, far above what a `files`-misconfigured package would produce
 # (3: package.json, README, LICENSE).
@@ -102,15 +102,13 @@ if npm view "$PACKAGE_NAME" version >/dev/null 2>&1; then
     || fail "'$NPM_USER' is not an owner of $PACKAGE_NAME, so publishing will fail with a misleading 404."
   echo "  $NPM_USER is an owner of $PACKAGE_NAME"
 else
-  echo "  $PACKAGE_NAME does not exist yet — this is the first publish, which claims it"
-  # An UNSCOPED name is first-come-first-served across the whole registry, so
-  # the first publish is also the claim. If a stranger already holds it, npm
-  # answers 404 rather than "taken" — it will not leak whether a package exists
-  # — so the failure reads as a missing package while auth is perfectly fine.
-  # `npm view` above already answered no, which means either nobody holds it or
-  # somebody does and we cannot see it; the publish is what distinguishes them.
-  echo "  NOTE: if the publish 404s, the name is held by someone else. That is"
-  echo "        an ownership answer, not a missing-package one."
+  echo "  $PACKAGE_NAME does not exist yet — this is the first publish, which creates it"
+  # A scoped name needs the scope to be an org you belong to, or your own
+  # username. When it is neither, npm answers 404 rather than 403 — it will not
+  # leak whether an org exists — so the failure reads as a missing package while
+  # auth is perfectly fine. This is the check that turns that into a sentence.
+  npm org ls stonedogcode >/dev/null 2>&1 \
+    || echo "  NOTE: could not list the 'stonedogcode' org. If the publish 404s, that is why — not a missing package."
 fi
 
 # ---------------------------------------------------------------------------

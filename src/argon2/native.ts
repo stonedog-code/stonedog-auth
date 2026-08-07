@@ -1,5 +1,5 @@
 /**
- * Argon2 via the `argon2` package (`stonedog-auth/argon2-native`).
+ * Argon2 via the `argon2` package (`@stonedogcode/auth/argon2-native`).
  *
  * The node-gyp binding. Use it where the image already carries a build
  * toolchain, or where this is simply what the application has been running —
