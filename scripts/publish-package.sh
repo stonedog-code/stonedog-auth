@@ -122,6 +122,32 @@ if npm view "$PACKAGE_NAME@$VERSION" version >/dev/null 2>&1; then
 fi
 
 # ---------------------------------------------------------------------------
+# 3b. Install exactly what the lockfile says, before anything reads node_modules.
+#
+# Every check above is about GIT. None of them looks at node_modules, and the
+# two diverge exactly when a manifest change has just been pulled — which is
+# precisely when someone is about to publish.
+#
+# stonedog-howto 0.1.2 hit this (NEH-497). The checkout was clean, on main and
+# current, so the script reported readiness in as many words — but `npm install`
+# had never run after the pull that renamed the style dependency. The old
+# unscoped package was still on disk and the scoped one absent, and Panda's
+# codegen, which resolves that import for real, died with
+# "Could not resolve @stonedogcode/style/preset". That reads as a config defect
+# rather than an un-run install, and it costs an interactive 2FA attempt to
+# find out otherwise.
+#
+# `npm ci` rather than `npm install`, for two reasons: it installs exactly the
+# lockfile, and it FAILS when the lockfile and manifest disagree. That
+# disagreement is itself a reason not to publish — `npm install` would quietly
+# reconcile it and ship a tarball built against a lockfile nobody committed.
+# ---------------------------------------------------------------------------
+say "Installing dependencies from the lockfile"
+[ -f package-lock.json ] || fail "there is no package-lock.json, so there is nothing to install reproducibly from."
+npm ci
+echo "  node_modules now matches package-lock.json"
+
+# ---------------------------------------------------------------------------
 # 4. The manifest invariants, before anything slow runs.
 # ---------------------------------------------------------------------------
 say "Checking the manifest invariants"
