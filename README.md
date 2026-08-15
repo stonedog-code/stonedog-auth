@@ -55,6 +55,39 @@ Three constraints hold everywhere:
 password hashing and adopt only the TOTP helpers. If taking one factor requires
 taking the rest, the interface has been drawn wrong — please say so.
 
+### Installing — this package ships SOURCE, so a bundler must be told
+
+`exports` points at `./src/index.ts`. There is no `dist`, deliberately: the
+package is meant to be readable on the sign-in path of several products, and a
+bundle is not.
+
+The cost is that a consumer bundling `node_modules` has to opt it in. **In
+Next.js:**
+
+```js
+// next.config.ts
+transpilePackages: ["@stonedogcode/auth"],
+```
+
+Omit it and the build fails with:
+
+```
+./node_modules/@stonedogcode/auth/src/index.ts
+Unknown module type
+This module doesn't have an associated type. Use a known file extension, or
+register a loader for it.
+```
+
+**The trap is which test tier notices.** That is a *production build* failure.
+Vitest and Jest transpile `node_modules` on their own terms, so a unit tier and
+an integration tier both pass against a config missing this line — rozcards had
+394 unit and 624 integration tests green while its build was broken (NEH-480).
+Only an end-to-end tier that actually builds the app catches it.
+
+So if you take this package and your build breaks with a message about a module
+type, this is why. And if it does *not* break, check that something in your
+pipeline builds for real before concluding you are fine.
+
 ### Zero runtime dependencies
 
 Everything here is `node:crypto` or arithmetic. A package on the sign-in path of
