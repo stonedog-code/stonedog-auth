@@ -87,6 +87,7 @@ export {
   type StoredToken,
   type TokenIssuer,
   type TokenIssuerOptions,
+  type TokenHashEncoding,
   type TokenKind,
   type TokenPolicy,
   type TokenStore,

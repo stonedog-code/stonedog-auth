@@ -62,8 +62,39 @@ export function generateNumericCode(digits = 6): string {
  * A **numeric code is different** and the host must not rely on this alone:
  * pair it with the attempt limiter.
  */
-export function hashToken(token: string): string {
-  return createHash("sha256").update(token, "utf8").digest("hex");
+export type TokenHashEncoding = "hex" | "base64url";
+
+/**
+ * The digest encoding. `hex` unless a host says otherwise.
+ *
+ * ## Why this is selectable at all
+ *
+ * It is an adoption barrier, found the first time a real application tried to
+ * take this function (NEH-480, rozcards). That app already stores
+ * `sha256(token)` as **base64url**, in live rows, behind a unique index. Both
+ * encodings are correct and neither is more secure — they are the same 256 bits
+ * spelled differently — but they are **different strings**, so a consumer
+ * switching to a fixed `hex` would invalidate every stored hash it has.
+ *
+ * For rozcards that is 15-minute magic-link and poll tokens, so the blast radius
+ * is one TTL of in-flight sign-ins. On a product whose *only* way in is a magic
+ * link, that is a real outage for whoever is mid-login, and it fails as "invalid
+ * link" — indistinguishable from a genuinely expired one.
+ *
+ * The alternatives were worse. A dual-read in the app (accept either encoding
+ * for a transition window) puts migration logic in the consumer that this
+ * package exists to remove, and it has to be remembered and deleted later. A
+ * data migration cannot work at all: the hashes are irreversible, which is the
+ * point of storing them.
+ *
+ * So the package bends. A shared primitive that a consumer cannot adopt without
+ * a data migration is a primitive that does not get adopted.
+ */
+export function hashToken(
+  token: string,
+  encoding: TokenHashEncoding = "hex",
+): string {
+  return createHash("sha256").update(token, "utf8").digest(encoding);
 }
 
 /**
@@ -175,12 +206,27 @@ export interface TokenIssuerOptions {
   clock?: Clock;
   /** Applied to a token's TTL when its kind is not in the policy. */
   fallbackTtlMinutes?: number;
+  /**
+   * Digest encoding for the hashes this issuer stores and claims by.
+   *
+   * Defaults to `hex`, matching `hashToken`. It is here as well as on
+   * `hashToken` because leaving it off would recreate the adoption barrier one
+   * level up: a consumer with existing base64url rows could take the standalone
+   * function and still not be able to take the issuer, which is the part worth
+   * having.
+   *
+   * It must match whatever is already in the store. Changing it against live
+   * data invalidates every outstanding token of every kind — the hashes are
+   * irreversible, so there is no migration, only a cutover.
+   */
+  hashEncoding?: TokenHashEncoding;
 }
 
 export function createTokenIssuer(options: TokenIssuerOptions): TokenIssuer {
   const policy = options.policy ?? defaultTokenPolicy;
   const clock = options.clock ?? systemClock;
   const fallbackTtl = options.fallbackTtlMinutes ?? 15;
+  const hashEncoding = options.hashEncoding ?? "hex";
   const { store } = options;
 
   return {
@@ -211,7 +257,7 @@ export function createTokenIssuer(options: TokenIssuerOptions): TokenIssuer {
       await store.insert({
         subjectId,
         kind,
-        tokenHash: hashToken(token),
+        tokenHash: hashToken(token, hashEncoding),
         expiresAt,
         // Stamped from the SAME clock as `expiresAt`, rather than left to a
         // column default. Otherwise createdAt comes from the database and
@@ -227,7 +273,7 @@ export function createTokenIssuer(options: TokenIssuerOptions): TokenIssuer {
 
     async consume(token, kind) {
       const now = clock.now();
-      const claimed = await store.claim(hashToken(token), kind, now);
+      const claimed = await store.claim(hashToken(token, hashEncoding), kind, now);
       if (!claimed) return { ok: false, reason: "invalid-or-expired" };
       return { ok: true, subjectId: claimed.subjectId };
     },
