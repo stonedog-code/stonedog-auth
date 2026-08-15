@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import { ResendTooSoonError } from "../errors";
 import {
   createTokenIssuer,
@@ -287,5 +289,62 @@ describe("the resend cooldown", () => {
     await issuer.issue("user-1", "device-approval");
 
     expect(store.rows[0]?.expiresAt.getTime()).toBe(start.getTime() + 5 * 60_000);
+  });
+});
+
+/**
+ * Digest encoding (NEH-480).
+ *
+ * Added because a real consumer could not adopt `hashToken` without it.
+ * rozcards stores `sha256(token)` as **base64url**, in live rows behind a
+ * unique index, and a fixed `hex` would have invalidated every one of them —
+ * 15-minute magic-link and poll tokens on a product whose only way in is a
+ * magic link.
+ *
+ * The two encodings are the same 256 bits spelled differently. That is exactly
+ * what makes the mismatch dangerous: nothing fails loudly, the lookup simply
+ * finds no row and the user is told their link is invalid.
+ */
+describe("hashToken encoding", () => {
+  const TOKEN = "a-token-to-hash";
+
+  it("defaults to hex, so existing callers are untouched", () => {
+    expect(hashToken(TOKEN)).toBe(hashToken(TOKEN, "hex"));
+    expect(hashToken(TOKEN)).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it("produces base64url when asked", () => {
+    const digest = hashToken(TOKEN, "base64url");
+    // 32 bytes base64url-encoded, unpadded.
+    expect(digest).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect(digest).not.toContain("=");
+  });
+
+  it("is the SAME bits either way — which is why the mismatch is silent", () => {
+    // If these ever diverge as bytes, one of the encodings is wrong rather
+    // than merely different, and the whole premise of the option collapses.
+    const hex = hashToken(TOKEN, "hex");
+    const b64 = hashToken(TOKEN, "base64url");
+    expect(Buffer.from(b64, "base64url").toString("hex")).toBe(hex);
+  });
+
+  it("gives DIFFERENT strings, so a consumer cannot switch against live data", () => {
+    // The assertion that documents the hazard. A test asserting only that both
+    // "work" would let someone conclude they are interchangeable.
+    expect(hashToken(TOKEN, "hex")).not.toBe(hashToken(TOKEN, "base64url"));
+  });
+
+  it("matches what an app already storing base64url computes by hand", () => {
+    // rozcards' `sha256b64url`, inlined. This is the compatibility claim the
+    // adoption rests on, so it is asserted against the real expression rather
+    // than against our own output.
+    const theirs = createHash("sha256").update(TOKEN).digest("base64url");
+    expect(hashToken(TOKEN, "base64url")).toBe(theirs);
+  });
+
+  it("compares base64url digests safely too", () => {
+    const digest = hashToken(TOKEN, "base64url");
+    expect(tokenHashEquals(digest, hashToken(TOKEN, "base64url"))).toBe(true);
+    expect(tokenHashEquals(digest, hashToken("other", "base64url"))).toBe(false);
   });
 });
