@@ -8,7 +8,7 @@ import {
   totpProvisioningUri,
   verifyTotpCode,
   type TotpReplayStore,
-} from "../totp";
+} from "../totp.js";
 
 /**
  * RFC 4226 Appendix D — the published HOTP test vectors for the ASCII secret

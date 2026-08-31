@@ -1,0 +1,27 @@
+{
+  "//why": "A SEPARATE config for the published build \u2014 NEH-1311. The root tsconfig is noEmit and carries `types: [node, jest]` so the editor and the gate can see the test files; a build that inherited either would emit nothing, or emit declarations referencing jest globals a consumer does not have. This one emits, and sees only what ships.",
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "noEmit": false,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "outDir": "dist",
+    "rootDir": "src",
+    "types": [
+      "node"
+    ]
+  },
+  "include": [
+    "src/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "coverage",
+    "src/**/__tests__/**"
+  ],
+  "//module": "NodeNext rather than the root's ESNext/bundler. The package is `type: module`, so what ships must be real Node ESM \u2014 which means every relative import carries a `.js` extension. NodeNext is what ENFORCES that at build time rather than leaving it to a consumer to discover, and a consumer discovering it is exactly how this issue started."
+}

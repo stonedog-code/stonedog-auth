@@ -5,8 +5,8 @@
  * error from here must not carry the input — see {@link assertAcceptable}.
  */
 
-import { MisconfiguredError, WeakSecretError } from "./errors";
-import { ARGON2ID_PARAMS, type Argon2Binding, type Argon2Params, type FactorResult } from "./types";
+import { MisconfiguredError, WeakSecretError } from "./errors.js";
+import { ARGON2ID_PARAMS, type Argon2Binding, type Argon2Params, type FactorResult } from "./types.js";
 
 /**
  * Length only, no composition rules.

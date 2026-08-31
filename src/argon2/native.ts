@@ -9,7 +9,7 @@
  * standard PHC string.
  */
 
-import type { Argon2Binding, Argon2Params } from "../types";
+import type { Argon2Binding, Argon2Params } from "../types.js";
 
 /**
  * Declared locally rather than imported, because `argon2` is an **optional**

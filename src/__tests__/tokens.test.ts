@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-import { ResendTooSoonError } from "../errors";
+import { ResendTooSoonError } from "../errors.js";
 import {
   createTokenIssuer,
   generateNumericCode,
@@ -9,8 +9,8 @@ import {
   tokenHashEquals,
   type StoredToken,
   type TokenStore,
-} from "../tokens";
-import type { Clock } from "../types";
+} from "../tokens.js";
+import type { Clock } from "../types.js";
 
 /**
  * A store that implements `claim` CORRECTLY — as one conditional operation.

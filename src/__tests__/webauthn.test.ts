@@ -3,8 +3,8 @@ import {
   generateChallenge,
   type ChallengeStore,
   type StoredChallenge,
-} from "../webauthn";
-import type { Clock } from "../types";
+} from "../webauthn.js";
+import type { Clock } from "../types.js";
 
 /** Implements `claim` as one atomic delete-and-return, as the contract requires. */
 function fakeStore(): ChallengeStore & { rows: Map<string, StoredChallenge> } {

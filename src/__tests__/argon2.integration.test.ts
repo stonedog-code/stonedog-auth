@@ -4,10 +4,10 @@ import { jest } from "@jest/globals";
 import * as nativeModule from "argon2";
 import * as nodeRsModule from "@node-rs/argon2";
 
-import { nativeArgon2 } from "../argon2/native";
-import { nodeRsArgon2 } from "../argon2/nodeRs";
-import { createPasswordFactor } from "../password";
-import { ARGON2ID_PARAMS } from "../types";
+import { nativeArgon2 } from "../argon2/native.js";
+import { nodeRsArgon2 } from "../argon2/nodeRs.js";
+import { createPasswordFactor } from "../password.js";
+import { ARGON2ID_PARAMS } from "../types.js";
 
 /**
  * Integration tier: the REAL Argon2 bindings, not a fake.

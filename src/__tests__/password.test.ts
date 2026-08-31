@@ -1,11 +1,11 @@
-import { WeakSecretError } from "../errors";
+import { WeakSecretError } from "../errors.js";
 import {
   assertAcceptable,
   createPasswordFactor,
   MAX_PASSWORD_LENGTH,
   MIN_PASSWORD_LENGTH,
-} from "../password";
-import { ARGON2ID_PARAMS, type Argon2Binding } from "../types";
+} from "../password.js";
+import { ARGON2ID_PARAMS, type Argon2Binding } from "../types.js";
 
 /**
  * A fake binding: the real Argon2 is deliberately slow, and none of what is
