@@ -75,6 +75,13 @@ export {
 } from "./lockout";
 
 export {
+  carrySessionEstablishment,
+  establishSession,
+  isSessionCurrent,
+  SESSION_ESTABLISHED_CLAIM,
+  type SessionClaims,
+} from "./session";
+export {
   createTokenIssuer,
   defaultTokenPolicy,
   generateNumericCode,
