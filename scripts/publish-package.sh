@@ -57,7 +57,16 @@ PACKAGE_NAME="@stonedogcode/auth"
 # (3: package.json, README, LICENSE).
 MIN_FILES=12
 # Every path `exports` names.
-REQUIRED_PATHS=("src/index.ts" "src/argon2/nodeRs.ts" "src/argon2/native.ts")
+# The BUILT entry points — NEH-1311. This package used to ship `src/*.ts` and
+# point `exports` at it, which broke consumers three separate ways: Turbopack
+# refused it (`Unknown module type`), a `moduleResolution: NodeNext` project
+# rejected its extensionless relative imports, and plain Node refused outright
+# with "Stripping types is currently unsupported for files under node_modules".
+#
+# @stonedogcode/style ships source for a real reason — Panda must statically
+# parse it. This package has no such requirement, so shipping source bought
+# nothing and cost three consumers.
+REQUIRED_PATHS=("dist/index.js" "dist/index.d.ts" "dist/argon2/nodeRs.js" "dist/argon2/native.js")
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO_ROOT"

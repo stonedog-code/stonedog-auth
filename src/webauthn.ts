@@ -19,7 +19,7 @@
 
 import { randomBytes } from "node:crypto";
 
-import { systemClock, type Clock } from "./types";
+import { systemClock, type Clock } from "./types.js";
 
 export type CeremonyKind = "registration" | "authentication";
 

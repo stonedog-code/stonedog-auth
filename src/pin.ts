@@ -14,9 +14,9 @@
  * mandatory rather than optional.
  */
 
-import { MisconfiguredError, WeakSecretError } from "./errors";
-import type { AttemptLimiter } from "./lockout";
-import { ARGON2ID_PARAMS, type Argon2Binding, type Argon2Params, type FactorResult } from "./types";
+import { MisconfiguredError, WeakSecretError } from "./errors.js";
+import type { AttemptLimiter } from "./lockout.js";
+import { ARGON2ID_PARAMS, type Argon2Binding, type Argon2Params, type FactorResult } from "./types.js";
 
 export const DEFAULT_PIN_LENGTH = 6;
 

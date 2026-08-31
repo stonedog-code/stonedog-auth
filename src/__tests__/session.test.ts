@@ -12,8 +12,8 @@ import {
   establishSession,
   isSessionCurrent,
   SESSION_ESTABLISHED_CLAIM,
-} from "../session";
-import type { Clock } from "../types";
+} from "../session.js";
+import type { Clock } from "../types.js";
 
 const at = (iso: string): Clock => ({ now: () => new Date(iso) });
 

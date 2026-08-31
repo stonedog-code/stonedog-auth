@@ -10,7 +10,7 @@
  * string, so a column written by one verifies under the other.
  */
 
-import type { Argon2Binding, Argon2Params } from "../types";
+import type { Argon2Binding, Argon2Params } from "../types.js";
 
 /**
  * The shape we need from the binding, declared locally.

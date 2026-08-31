@@ -8,8 +8,8 @@
  * which is a thing an attacker can trigger by waiting.
  */
 
-import { LockedOutError } from "./errors";
-import { systemClock, type Clock } from "./types";
+import { LockedOutError } from "./errors.js";
+import { systemClock, type Clock } from "./types.js";
 
 export interface LockoutPolicy {
   /** Failures before the subject is locked out. */

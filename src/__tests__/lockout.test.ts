@@ -1,11 +1,11 @@
-import { LockedOutError, MisconfiguredError, WeakSecretError } from "../errors";
+import { LockedOutError, MisconfiguredError, WeakSecretError } from "../errors.js";
 import {
   createAttemptLimiter,
   createInMemoryAttemptStore,
   defaultLockoutPolicy,
-} from "../lockout";
-import { assertPinAcceptable, createPinFactor } from "../pin";
-import { ARGON2ID_PARAMS, type Argon2Binding, type Clock } from "../types";
+} from "../lockout.js";
+import { assertPinAcceptable, createPinFactor } from "../pin.js";
+import { ARGON2ID_PARAMS, type Argon2Binding, type Clock } from "../types.js";
 
 function fixedClock(start: Date): Clock & { advance(seconds: number): void } {
   let current = start;

@@ -21,8 +21,8 @@
 
 import { createHash, randomBytes, randomInt, timingSafeEqual } from "node:crypto";
 
-import { ResendTooSoonError } from "./errors";
-import { systemClock, type Clock } from "./types";
+import { ResendTooSoonError } from "./errors.js";
+import { systemClock, type Clock } from "./types.js";
 
 /**
  * Host-defined. A string rather than a union so an application can add its own

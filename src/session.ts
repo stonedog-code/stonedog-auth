@@ -43,7 +43,7 @@
  * be applied by a JWT callback, a middleware, or a server component.
  */
 
-import type { Clock } from "./types";
+import type { Clock } from "./types.js";
 
 /**
  * The claim name carrying the establishment instant.

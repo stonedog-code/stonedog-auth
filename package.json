@@ -1,6 +1,6 @@
 {
   "name": "@stonedogcode/auth",
-  "version": "0.3.0",
+  "version": "0.3.2",
   "description": "Authentication factor primitives: password, PIN, TOTP, WebAuthn challenges and single-use emailed tokens. No storage, no transport, no framework.",
   "license": "Apache-2.0",
   "author": "StoneDogCode L.L.C.",
@@ -12,31 +12,41 @@
   "sideEffects": false,
   "//exports": "TypeScript SOURCE rather than a bundled dist/, matching @stonedogcode/howto and stonedog-style. The argon2 adapters are separate entry points so a consumer that never builds a password factor never resolves a binding it has not installed.",
   "exports": {
-    ".": "./src/index.ts",
-    "./argon2-node-rs": "./src/argon2/nodeRs.ts",
-    "./argon2-native": "./src/argon2/native.ts",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./argon2-node-rs": {
+      "types": "./dist/argon2/nodeRs.d.ts",
+      "default": "./dist/argon2/nodeRs.js"
+    },
+    "./argon2-native": {
+      "types": "./dist/argon2/native.d.ts",
+      "default": "./dist/argon2/native.js"
+    },
     "./package.json": "./package.json"
   },
   "//files": "The __tests__ exclusion is load-bearing rather than tidiness: anything shipped under src/ is compiled by the CONSUMER, and the tests import jest globals. They would also ship a suite nobody can run to every consumer.",
   "files": [
-    "src",
-    "!src/**/__tests__/**",
+    "dist",
     "LICENSE",
     "NOTICE",
     "README.md"
   ],
   "scripts": {
-    "type-check": "tsc --noEmit",
+    "audit": "npm audit --audit-level=moderate",
+    "build": "rm -rf dist && tsc -p tsconfig.build.json",
+    "gate": "npm run type-check && npm run lint && npm run test && npm run build",
     "lint": "eslint .",
+    "prepack": "npm run build",
+    "publish:stonedog-auth": "bash scripts/publish-package.sh",
+    "release": "npm run publish:stonedog-auth",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest",
     "test:coverage": "NODE_OPTIONS=--experimental-vm-modules jest --coverage",
-    "gate": "npm run type-check && npm run lint && npm run test",
-    "audit": "npm audit --audit-level=moderate",
-    "version:bump:patch": "npm version patch --no-git-tag-version",
-    "version:bump:minor": "npm version minor --no-git-tag-version",
+    "type-check": "tsc --noEmit",
     "verify:package": "bash scripts/verify-package.sh",
-    "publish:stonedog-auth": "bash scripts/publish-package.sh",
-    "release": "npm run publish:stonedog-auth"
+    "version:bump:minor": "npm version minor --no-git-tag-version",
+    "version:bump:patch": "npm version patch --no-git-tag-version"
   },
   "//publish:stonedog-auth": "Run from a terminal, interactively — npm prompts for the 2FA one-time password and the login flow needs a browser. It refuses a checkout that is detached, dirty, or behind origin/main; refuses a version already published; refuses a tarball missing an entry point, the NOTICE, or containing tests; refuses any runtime dependency at all, and refuses either argon2 binding being anything but an optional peer. Then it proves the result by installing from the registry into a temp directory and checking that installing alone pulls in NO argon2 binding.",
   "//dependencies": "There are none, and that is a deliberate property rather than a coincidence. Everything here is node:crypto or arithmetic. A package that sits on the sign-in path of four products should be auditable in an afternoon, and every dependency it takes is one every consumer inherits on that path.",
@@ -81,5 +91,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "//publishConfig": "A scoped package defaults to RESTRICTED on npm, which needs a paid plan and would fail the publish. Declaring it here means the intent travels with the manifest rather than depending on someone remembering --access public."
+  "//publishConfig": "A scoped package defaults to RESTRICTED on npm, which needs a paid plan and would fail the publish. Declaring it here means the intent travels with the manifest rather than depending on someone remembering --access public.",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts"
 }

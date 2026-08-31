@@ -26,7 +26,7 @@ export {
   ResendTooSoonError,
   WeakSecretError,
   type WeakSecretReason,
-} from "./errors";
+} from "./errors.js";
 
 export {
   ARGON2ID_PARAMS,
@@ -39,7 +39,7 @@ export {
   type FactorKind,
   type FactorResult,
   type Subject,
-} from "./types";
+} from "./types.js";
 
 export {
   assertAcceptable,
@@ -50,7 +50,7 @@ export {
   type PasswordFactor,
   type PasswordFactorOptions,
   type PasswordPolicy,
-} from "./password";
+} from "./password.js";
 
 export {
   assertPinAcceptable,
@@ -60,7 +60,7 @@ export {
   type PinFactor,
   type PinFactorOptions,
   type PinPolicy,
-} from "./pin";
+} from "./pin.js";
 
 export {
   createAttemptLimiter,
@@ -72,7 +72,7 @@ export {
   type AttemptRecord,
   type AttemptStore,
   type LockoutPolicy,
-} from "./lockout";
+} from "./lockout.js";
 
 export {
   carrySessionEstablishment,
@@ -80,7 +80,7 @@ export {
   isSessionCurrent,
   SESSION_ESTABLISHED_CLAIM,
   type SessionClaims,
-} from "./session";
+} from "./session.js";
 export {
   createTokenIssuer,
   defaultTokenPolicy,
@@ -98,7 +98,7 @@ export {
   type TokenKind,
   type TokenPolicy,
   type TokenStore,
-} from "./tokens";
+} from "./tokens.js";
 
 export {
   createTotpFactor,
@@ -114,7 +114,7 @@ export {
   type TotpFactorOptions,
   type TotpParams,
   type TotpReplayStore,
-} from "./totp";
+} from "./totp.js";
 
 export {
   createWebAuthnChallenges,
@@ -124,4 +124,4 @@ export {
   type StoredChallenge,
   type WebAuthnChallenges,
   type WebAuthnOptions,
-} from "./webauthn";
+} from "./webauthn.js";

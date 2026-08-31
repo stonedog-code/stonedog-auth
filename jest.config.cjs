@@ -9,6 +9,24 @@ module.exports = {
   transform: {
     "^.+\\.ts$": ["ts-jest", { useESM: true }],
   },
+  /*
+    Resolve the `.js` in a relative import back to the `.ts` that will become
+    it.
+
+    The source now writes `from "./errors.js"`, which is what Node's ESM loader
+    and a `moduleResolution: NodeNext` CONSUMER both require — this package
+    ships TypeScript source, so a consumer compiles it under their settings,
+    not ours. Our own `moduleResolution: "bundler"` tolerated the extensionless
+    form, which is why it went unnoticed until optima-cloud-saas tried to
+    consume it and every relative import in the barrel failed to compile.
+
+    Jest is the one place that needs the mapping undone, because it is loading
+    the `.ts` directly rather than a built `.js`. Every consumer in this fleet
+    carries the identical mapper for the identical reason.
+  */
+  moduleNameMapper: {
+    "^(\\.{1,2}/.*)\\.js$": "$1",
+  },
   testMatch: ["<rootDir>/src/**/__tests__/**/*.test.ts"],
   collectCoverageFrom: ["src/**/*.ts", "!src/**/__tests__/**", "!src/index.ts"],
   // A package on the sign-in path of four products. The floor is high because
