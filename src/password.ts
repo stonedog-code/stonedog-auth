@@ -152,7 +152,11 @@ export function createPasswordFactor(options: PasswordFactorOptions): PasswordFa
     async hash(password) {
       assertAcceptable(password, policy);
       if (policy.isBreached) {
-        let breached = false;
+        // No initialiser: both paths below must assign, so TypeScript's
+        // definite-assignment analysis proves what `= false` only implied.
+        // eslint 10's no-useless-assignment flagged the initialiser as dead,
+        // and it was — the catch already sets the fail-open value explicitly.
+        let breached: boolean;
         try {
           breached = await policy.isBreached(password);
         } catch {
@@ -178,7 +182,9 @@ export function createPasswordFactor(options: PasswordFactorOptions): PasswordFa
       // and checking here means an attacker cannot make us hash a megabyte.
       if (password.length === 0 || password.length > policy.maxLength) return { ok: false };
 
-      let matched = false;
+      // No initialiser: the catch returns, so the only path reaching the read
+      // below is the successful try, which always assigns. `= false` was dead.
+      let matched: boolean;
       try {
         matched = await argon2.verify(storedHash, password);
       } catch {

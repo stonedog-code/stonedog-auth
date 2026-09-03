@@ -130,7 +130,9 @@ export function createPinFactor(options: PinFactorOptions): PinFactor {
         return { ok: false };
       }
 
-      let matched = false;
+      // No initialiser: both paths assign, so a future edit cannot leave the
+      // default and the catch silently stop being the deciding statement.
+      let matched: boolean;
       try {
         matched = await argon2.verify(storedHash, pin);
       } catch {
