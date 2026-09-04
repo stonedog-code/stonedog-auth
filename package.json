@@ -48,22 +48,22 @@
     "version:bump:minor": "npm version minor --no-git-tag-version",
     "version:bump:patch": "npm version patch --no-git-tag-version"
   },
-  "//publish:stonedog-auth": "Run from a terminal, interactively — npm prompts for the 2FA one-time password and the login flow needs a browser. It refuses a checkout that is detached, dirty, or behind origin/main; refuses a version already published; refuses a tarball missing an entry point, the NOTICE, or containing tests; refuses any runtime dependency at all, and refuses either argon2 binding being anything but an optional peer. Then it proves the result by installing from the registry into a temp directory and checking that installing alone pulls in NO argon2 binding.",
+  "//publish:stonedog-auth": "Run from a terminal, interactively \u2014 npm prompts for the 2FA one-time password and the login flow needs a browser. It refuses a checkout that is detached, dirty, or behind origin/main; refuses a version already published; refuses a tarball missing an entry point, the NOTICE, or containing tests; refuses any runtime dependency at all, and refuses either argon2 binding being anything but an optional peer. Then it proves the result by installing from the registry into a temp directory and checking that installing alone pulls in NO argon2 binding.",
   "//dependencies": "There are none, and that is a deliberate property rather than a coincidence. Everything here is node:crypto or arithmetic. A package that sits on the sign-in path of four products should be auditable in an afternoon, and every dependency it takes is one every consumer inherits on that path.",
   "devDependencies": {
-    "@eslint/js": "^9.39.5",
+    "@eslint/js": "^10.0.0",
     "@node-rs/argon2": "^2.0.2",
     "@types/jest": "^29.5.14",
     "@types/node": "^22.10.0",
     "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@typescript-eslint/parser": "^8.0.0",
     "argon2": "^0.45.1",
-    "eslint": "^9.17.0",
+    "eslint": "^10.0.0",
     "jest": "^29.7.0",
     "ts-jest": "^29.4.11",
     "typescript": "^5.9.3"
   },
-  "//peerDependencies": "Both argon2 bindings are optional. Which one works is decided by the runtime image — a node-gyp build needs a toolchain an Alpine image does not carry — and the two are interoperable because both emit the standard PHC string. A consumer installs whichever suits its image, or neither.",
+  "//peerDependencies": "Both argon2 bindings are optional. Which one works is decided by the runtime image \u2014 a node-gyp build needs a toolchain an Alpine image does not carry \u2014 and the two are interoperable because both emit the standard PHC string. A consumer installs whichever suits its image, or neither.",
   "peerDependencies": {
     "@node-rs/argon2": ">=2",
     "argon2": ">=0.31"
