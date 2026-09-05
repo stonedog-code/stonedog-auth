@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "project": "stonedog-auth",
+  "tiers": {
+    "unit": {
+      "include": ["src/__tests__/**/*.test.ts"]
+    }
+  }
+}
