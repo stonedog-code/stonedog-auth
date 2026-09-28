@@ -76,6 +76,15 @@ import {
   type Argon2Binding,
   type TokenStore,
   type StoredToken,
+  // 0.4.0 sign-in methods — resolved through the published barrel too.
+  mayAuthenticateWith,
+  requiredSteps,
+  createSignInTickets,
+  createRecoveryCodes,
+  createEmailCodeFactor,
+  pkceChallengeS256,
+  verifyPkceS256,
+  type StoredTicket,
 } from "@stonedogcode/auth";
 import { nodeRsArgon2 } from "@stonedogcode/auth/argon2-node-rs";
 import { nativeArgon2 } from "@stonedogcode/auth/argon2-native";
@@ -153,6 +162,48 @@ if (typeof (await challenges.issue("u1", "authentication")) !== "string") {
   throw new Error("challenge not issued");
 }
 if (generateToken().length < 40) throw new Error("token too short");
+
+if (mayAuthenticateWith("password_totp", "magic_link")) throw new Error("downgrade allowed");
+if (requiredSteps("password_totp").join() !== "password,totp") throw new Error("wrong step order");
+
+const ticketRows = new Map<string, StoredTicket>();
+const tickets = createSignInTickets({
+  store: {
+    put: async (t) => void ticketRows.set(t.hash, t),
+    take: async (h) => {
+      const t = ticketRows.get(h) ?? null;
+      ticketRows.delete(h);
+      return t;
+    },
+  },
+});
+const t0 = await tickets.start("u1", "password_totp", "email");
+if ((await tickets.advance(t0.ticket, "totp")) !== null) throw new Error("ticket skipped a step");
+
+const codeHashes = new Map<string, string[]>();
+const recovery = createRecoveryCodes({
+  store: {
+    replaceAll: async (s, h) => void codeHashes.set(s, [...h]),
+    consume: async (s, h) => {
+      const list = codeHashes.get(s) ?? [];
+      const i = list.indexOf(h);
+      if (i < 0) return false;
+      list.splice(i, 1);
+      return true;
+    },
+    remaining: async (s) => codeHashes.get(s)?.length ?? 0,
+  },
+});
+const [firstCode] = await recovery.issue("u1");
+if (!firstCode || !(await recovery.consume("u1", firstCode.toUpperCase()))) throw new Error("recovery code refused");
+if (await recovery.consume("u1", firstCode)) throw new Error("recovery code spent twice");
+
+const emailCodes = createEmailCodeFactor({ issuer: createTokenIssuer({ store }) });
+const { code } = await emailCodes.issue("u9");
+if (!(await emailCodes.verify("u9", code)).ok) throw new Error("email code refused");
+
+const verifier = "x".repeat(43);
+if (!verifyPkceS256(verifier, pkceChallengeS256(verifier))) throw new Error("pkce mismatch");
 
 console.log("package verified: all three entry points resolve, types check, code runs");
 TS

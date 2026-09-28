@@ -1,7 +1,8 @@
 # @stonedogcode/auth
 
 Authentication **factor primitives**: password, PIN, TOTP, WebAuthn challenges,
-and single-use emailed tokens.
+single-use emailed tokens — and, since 0.4.0, the sign-in **method** rules that
+stop an account being entered with less than it chose.
 
 Not a framework, not a session manager, and not a replacement for whatever you
 use to hold a session. It is the layer underneath — the parts that are identical
@@ -241,6 +242,140 @@ The subject check is not redundant with the randomness: the challenge is public
 by the time the browser has it, so that comparison is the only thing binding it
 to a person. A failed subject check still **spends** the challenge, or an
 attacker retries it against every account id they can think of.
+
+## Sign-in methods
+
+*Since 0.4.0.* A **factor** answers "is this secret right?". A **method** answers
+"which secrets does this account require, in what order, and may some other
+route stand in for them?" — and that second question is where the downgrade bug
+lives. An app that lets a user choose "passkey + PIN" and leaves the magic-link
+endpoint open for that same account has built an MFA screen with a
+single-factor door beside it.
+
+| method          | steps, in order        | assurance |
+|-----------------|------------------------|-----------|
+| `magic_link`    | `email-link`           | 1 — the default |
+| `email_code`    | `email-code`           | 1 — an accessibility alternative to a link, **not MFA** |
+| `password_totp` | `password`, `totp`     | 2 |
+| `passkey_pin`   | `webauthn`, `pin`      | 2 |
+
+### Magic link stays the default
+
+Nothing changes for an account on `magic_link`. The library still supplies
+`createTokenIssuer` (kind `"magic-link"`); the cross-device flow — the email,
+the polling, the cookie — stays in your host, because it is transport and
+storage.
+
+### The no-downgrade rule — every door asks
+
+```ts
+import { mayAuthenticateWith } from "@stonedogcode/auth";
+
+// In the magic-link route, the email-code route, any legacy provider, the
+// mobile exchange — EVERY path that can create a session:
+if (!mayAuthenticateWith(user.authMethod, "magic_link")) {
+  // Answer generically (no enumeration); email the user that their account
+  // signs in with a different method.
+  return genericOk();
+}
+```
+
+Equal or higher assurance is allowed (`magic_link` and `email_code` users may
+use either); lower is refused. One door that forgets is the whole account's
+assurance. An unknown method value is treated as assurance 2, so a corrupt
+column refuses the inbox routes rather than opening them.
+
+### The three alternatives
+
+**`email_code`** — a 6-digit code instead of a link:
+
+```ts
+const emailCodes = createEmailCodeFactor({ issuer: tokens, limiter, audit });
+const { code } = await emailCodes.issue(user.id);     // email it; never store or log it
+await emailCodes.verify(user.id, submitted);          // throws LockedOutError when locked
+```
+
+The stored hash is bound to the subject, so two users who happen to hold the
+same six digits cannot find — or spend — each other's code.
+
+**`password_totp`** and **`passkey_pin`** — two steps, bridged by a ticket
+rather than a session:
+
+```ts
+const tickets = createSignInTickets({ store: yourTicketStore });   // 5-minute TTL per step
+
+// POST /signin/start — the email identifies the account, no factor proved yet
+const { ticket } = await tickets.start(user.id, "password_totp", "email");
+
+// POST /signin/password
+const t = await tickets.peek(ticket);                  // who to check — does NOT spend it
+if (!t || !(await passwords.verify(hashFor(t.subjectId), password)).ok) return unauthorised();
+const next = await tickets.advance(ticket, "password"); // spends it, returns a NEW ticket
+
+// POST /signin/totp
+const done = await tickets.advance(next.ticket, "totp");
+if (done?.done) establishTheSession(done.subjectId);
+```
+
+A ticket is random, stored only as a hash, **single-use per step** (every
+`advance` spends it and issues a successor, right step or wrong), and bound to
+the step order: a skipped, repeated or out-of-order step returns `null`.
+**Call `advance` only after the factor has verified** — it records that a step
+happened; it cannot check the secret. For a passkey, pair it with
+`createWebAuthnChallenges` and your WebAuthn verifier as before.
+
+### Recovery codes — never the only secret
+
+Enrolling an assurance-2 method issues ten codes (`xxxx-xxxx-xx`, unambiguous
+base32, 50 bits each). Show them once; only their hashes are stored. Input is
+case-, hyphen- and space-insensitive. `issue` **replaces** every earlier code.
+
+```ts
+const recovery = createRecoveryCodes({ store: yourRecoveryStore, audit });
+const codes = await recovery.issue(user.id);           // show once
+```
+
+A recovery code replaces **one** step, and a ticket enforces which:
+
+| method          | recovery path                    |
+|-----------------|----------------------------------|
+| `password_totp` | `password`, then `recovery-code` (it replaces only the TOTP) |
+| `passkey_pin`   | `email-code`, then `recovery-code` (an emailed code first, then the code replaces passkey + PIN) |
+
+A ticket fresh from `start` never accepts `"recovery-code"`. When a host
+advances with it, the sign-in *was* a recovery: tell the user by email, revoke
+their other sessions (`establishSession` / `isSessionCurrent`), and send them to
+re-enrol. Consume the code only after `peek` shows the ticket is at the right
+point, then `advance`.
+
+### Step-up
+
+Sensitive account changes — changing method, viewing or regenerating recovery
+codes, removing a passkey — should require a sign-in with the **current**
+method within the last few minutes. The library leaves the clock claim to your
+session (it has no session), but everything the re-authentication needs is
+here: run the same ticket steps scoped to the signed-in user, and on `done`
+stamp your own `authTime`. A session reached by a hand-off or a recovery code
+should not count as recent authentication.
+
+### PKCE, for a code returning to an app
+
+```ts
+const challenge = pkceChallengeS256(verifier);   // throws on a verifier outside RFC 7636
+verifyPkceS256(verifier, storedChallenge);       // constant-time; false on anything malformed
+```
+
+S256 only — `plain` is not offered, because with `plain` the challenge *is* the
+verifier.
+
+### What this does not claim
+
+The disclaimer at the top applies here in full. These primitives are designed
+with SOC 2 and HIPAA-style controls in mind — no downgrade, hashed secrets,
+single-use steps, audit events without secrets — but **no fitness for HIPAA,
+SOC 2 or any other regulated purpose is claimed**, and none of it has been
+independently audited. Whether a system built on them meets a framework depends
+on everything outside this package.
 
 ## Attempt limiting
 

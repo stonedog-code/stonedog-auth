@@ -117,6 +117,27 @@ export {
 } from "./totp.js";
 
 export {
+  AUTH_METHODS,
+  isDowngrade,
+  mayAuthenticateWith,
+  methodAssurance,
+  requiredSteps,
+  type AuthMethod,
+} from "./methods.js";
+
+export { createRecoveryCodes, type RecoveryCodeStore } from "./recovery.js";
+
+export {
+  createSignInTickets,
+  type SignInTicketStore,
+  type StoredTicket,
+} from "./signin-ticket.js";
+
+export { createEmailCodeFactor } from "./email-code.js";
+
+export { pkceChallengeS256, verifyPkceS256 } from "./pkce.js";
+
+export {
   createWebAuthnChallenges,
   generateChallenge,
   type CeremonyKind,

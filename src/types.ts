@@ -12,7 +12,14 @@
  */
 
 /** The factors this package can verify. Hosts opt into the ones they want. */
-export type FactorKind = "password" | "pin" | "totp" | "webauthn" | "emailed-token";
+export type FactorKind =
+  | "password"
+  | "pin"
+  | "totp"
+  | "webauthn"
+  | "emailed-token"
+  /** A single-use recovery code standing in for a lost second factor (0.4.0). */
+  | "recovery-code";
 
 /**
  * Who is being authenticated, as far as this package is concerned.
@@ -138,7 +145,17 @@ export interface AuthEvent {
     | "factor.locked-out"
     | "token.issued"
     | "token.consumed"
-    | "token.rejected";
+    | "token.rejected"
+    // Sign-in methods (0.4.0). Additive: every value above is unchanged, so a
+    // host switching on `type` keeps compiling and keeps meaning the same thing.
+    | "signin.started"
+    | "signin.succeeded"
+    | "signin.failed"
+    | "method.changed"
+    | "factor.enrolled"
+    | "factor.removed"
+    | "recovery.used"
+    | "recovery.issued";
   factor: FactorKind;
   /** Absent when the attempt named an account that does not exist. */
   subjectId?: string;
