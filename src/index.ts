@@ -118,11 +118,15 @@ export {
 
 export {
   AUTH_METHODS,
+  canRemoveCredential,
   isDowngrade,
   mayAuthenticateWith,
   methodAssurance,
   requiredSteps,
   type AuthMethod,
+  type CredentialFactor,
+  type CredentialRecord,
+  type RemovalVerdict,
 } from "./methods.js";
 
 export { createRecoveryCodes, type RecoveryCodeStore } from "./recovery.js";
@@ -136,6 +140,60 @@ export {
 export { createEmailCodeFactor } from "./email-code.js";
 
 export { pkceChallengeS256, verifyPkceS256 } from "./pkce.js";
+
+// 0.5.0 — the cross-device link ticket, per-surface credentials, and the
+// server half of the on-device key. Lifted from hopper-web (NEH-1978).
+export {
+  createLinkTickets,
+  LIVE_LINK_STATES,
+  type CompleteLinkOutcome,
+  type LinkCancelReason,
+  type LinkTicketMeta,
+  type LinkTicketOptions,
+  type LinkTicketPatch,
+  type LinkTicketRef,
+  type LinkTicketState,
+  type LinkTicketStatus,
+  type LinkTicketStore,
+  type LinkTicketView,
+  type LinkTicketWhere,
+  type LinkTickets,
+  type MintedLinkTicket,
+  type NewLinkTicket,
+  type ScannedLinkTicket,
+  type StoredLinkTicket,
+} from "./link-ticket.js";
+
+export {
+  formatManualCode,
+  MANUAL_CODE_ALPHABET,
+  MANUAL_CODE_BITS,
+  MANUAL_CODE_LENGTH,
+  manualCodeForTicketHash,
+  manualCodeKeyFrom,
+  manualCodesEqual,
+  normaliseManualCode,
+} from "./manual-code.js";
+
+export {
+  AUTH_SURFACES,
+  CREDENTIAL_KINDS,
+  credentialAllowedOn,
+  type AuthSurface,
+  type CredentialKind,
+} from "./surfaces.js";
+
+export {
+  createDecoyVerifier,
+  createDeviceKeyChallenges,
+  parseDeviceKeyPem,
+  verifyDeviceKeySignature,
+  type DeviceKeyChallengeKind,
+  type DeviceKeyChallengeOptions,
+  type DeviceKeyChallengeStore,
+  type DeviceKeyChallenges,
+  type StoredDeviceKeyChallenge,
+} from "./device-key.js";
 
 export {
   createWebAuthnChallenges,

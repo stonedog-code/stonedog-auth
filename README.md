@@ -1,7 +1,7 @@
 # @stonedogcode/auth
 
 Authentication **factor primitives**: password, PIN, TOTP, WebAuthn challenges,
-single-use emailed tokens — and, since 0.4.0, the sign-in **method** rules that
+single-use emailed tokens — since 0.4.0, the sign-in **method** rules that
 stop an account being entered with less than it chose.
 
 Not a framework, not a session manager, and not a replacement for whatever you
@@ -376,6 +376,150 @@ single-use steps, audit events without secrets — but **no fitness for HIPAA,
 SOC 2 or any other regulated purpose is claimed**, and none of it has been
 independently audited. Whether a system built on them meets a framework depends
 on everything outside this package.
+
+## Cross-device link ticket — "connect a phone"
+
+*Since 0.5.0.* A signed-in website shows a QR code (or a short manual code). A
+phone with no session presents it. The website is shown what presented it and
+confirms or cancels. The phone then collects, once, and your host issues it
+whatever the connection is for. Two holders and a third party's decision
+between them, so the ticket string stays stable while the row's **state**
+moves — which is why neither the sign-in ticket nor the token issuer could
+carry it.
+
+```
+pending ──scan (phone)──▶ scanned ──confirm (website)──▶ confirmed
+   ──complete (phone)──▶ consumed ──claimEnrolment (host)──▶ consumed, enrolled
+```
+
+```ts
+import { createLinkTickets, manualCodeKeyFrom } from "@stonedogcode/auth";
+
+const links = createLinkTickets({
+  store,                                                        // your rows; see the port below
+  manualCodeKey: manualCodeKeyFrom(process.env.AUTH_SECRET!, "myapp.connect.manual-code.v1"),
+  hashEncoding: "hex",                                          // must match your existing digests
+});
+
+// Website, signed in:
+const { id, ticket, manualCode, expiresAt } = await links.mint(user.id);   // QR: https://<origin>/connect#t=<ticket>
+await links.read(user.id, id);                                             // poll: pending | scanned | confirmed | consumed | cancelled | expired
+await links.confirm(user.id, id);                                          // after showing "Connect <device>?"
+await links.burn(user.id, "sign_out");                                     // on sign-out
+
+// Phone, no session:
+const scanned = await links.scan({ ticket }, { model, platform });        // or { manualCode }
+//   → { ticketId, subjectId, nonce }: keep the nonce; show "Connect this phone to <email>?" (you look the email up)
+const done = await links.complete({ ticket }, nonce);                      // { ok: true } | waiting | invalid
+//   → mint your enrolment token for done.subjectId; the enrol route then calls:
+await links.claimEnrolment(done.ticketId, done.subjectId);                 // true once, false on replay
+```
+
+**Every transition is one conditional write with the FROM state in its
+where-clause.** Of two concurrent callers exactly one moves the row. The
+package decides from what the store holds — the ticket's digest, the nonce's
+digest, the state, the expiry — never from anything the client sends back.
+`expiresAt` is set once at mint (120 s) and every transition requires it in
+the future; `expired` is a view the poll derives, the row keeps its last state.
+A sign-out `burn` also retires a `consumed` ticket whose enrolment has not been
+claimed, so a QR left on a screen — and an enrolment token already collected —
+die with the session rather than at their own expiry.
+
+**The manual code is derived, not stored**: the first 40 bits of an HMAC, under
+your key, of the ticket's digest. Nothing new at rest, and redeeming it is the
+same `pending → scanned` write the QR performs, on the same row. At 40 bits it
+is short by design: put a tight attempt budget on the route that redeems it
+(the ticket's 256 bits need no such thing). Its alphabet and typing rules are
+`@stonedogcode/mobile-auth`'s, and the suite pins the two packages together.
+
+**The port is deliberately dumb** — a closed where-clause and a closed patch,
+each field one column:
+
+```ts
+interface LinkTicketStore {
+  insert(row: NewLinkTicket): Promise<{ id: string }>;              // you assign the id
+  findOne(where: LinkTicketWhere): Promise<StoredLinkTicket | null>;
+  findPending(now: Date): Promise<{ ticketHash: string }[]>;         // for the manual code
+  updateMany(where: LinkTicketWhere, data: LinkTicketPatch): Promise<number>;  // ONE conditional UPDATE
+}
+```
+
+`updateMany` must be a single conditional write returning the rows changed; a
+read-then-write implementation satisfies the types and breaks the one rule
+above. `mint` supersedes then inserts as two calls, so give it a store bound to
+a transaction if you have one. `meta` is yours (device model, platform…); on a
+backend without JSON, serialise it yourself.
+
+## Credential surfaces — a mobile key signs in to mobile only
+
+*Since 0.5.0.* A credential has a kind decided at enrolment — a `web` passkey,
+or a `mobile` on-device key unlocked by a fingerprint (`@stonedogcode/mobile-auth`).
+Each may authenticate **only the surface it was enrolled for**, and the same
+rule governs step-up: a privileged web action re-confirmed by a mobile key is
+the same crossing by another route.
+
+```ts
+import { credentialAllowedOn } from "@stonedogcode/auth";
+
+// Where the credential is RESOLVED — the chokepoint every bearer route passes
+// through — with `surface` derived from the request, never declared by the client:
+if (!credentialAllowedOn(key.kind, surface, { userVerified })) return refuse();
+```
+
+True only on the diagonal. A `mobile` credential also needs `userVerified`
+literally `true` — a verification the client merely did not mention is one
+that did not happen. Anything outside the two unions is refused, so a corrupt
+column closes a door rather than opening one.
+
+## The last way in
+
+*Since 0.5.0.* Before removing a credential, ask whether the account's method
+still works without it:
+
+```ts
+import { canRemoveCredential } from "@stonedogcode/auth";
+
+const verdict = canRemoveCredential(user.authMethod, credentials, removingId);
+if (!verdict.ok) return refuse(verdict.reason);   // "last-way-in" | "not-found" | "unknown-method"
+```
+
+It refuses when some step of `requiredSteps(method)` would have no credential
+left — the last passkey of a `passkey_pin` account, the TOTP of a
+`password_totp` one. A `device-key` satisfies no step: it is a convenience on
+top of the method the user chose, never a way in by itself, so removing the
+last one is always allowed and it can never stand in for the last passkey.
+Assurance-1 accounts may remove anything; their way in is the inbox.
+
+## Device keys — the server half of the fingerprint
+
+*Since 0.5.0.* The phone (`@stonedogcode/mobile-auth/device-key`) holds a P-256
+key that never leaves it and answers a challenge with ECDSA over SHA-256, DER,
+standard base64. This is everything the server does with that:
+
+```ts
+import { createDeviceKeyChallenges, parseDeviceKeyPem, verifyDeviceKeySignature } from "@stonedogcode/auth";
+
+// Enrolment: accept the PEM the phone registers — P-256 and nothing else.
+const pem = parseDeviceKeyPem(body.publicKeyPem);        // normalised PEM, or null; never throws
+
+// Sign-in: issue, then CONSUME FIRST and verify over what the store returned.
+const challenges = createDeviceKeyChallenges({ store, prefix: "myapp-signin.v1" });
+const challenge = await challenges.issue(key.subjectId, "signin");
+// … the phone signs it …
+const owner = await challenges.claim(body.challenge, "signin");     // spent whatever happens next
+if (!owner || owner.subjectId !== key.subjectId) return refuse();
+if (!verifyDeviceKeySignature(key.publicKeyPem, body.challenge, body.signature)) return refuse();
+```
+
+A challenge is single-use, bound to its kind (`signin` | `enrol`), and lives
+two minutes; the store's `claim` is delete + return, atomically, like every
+other `claim` here. The signature is verified over the **stored** challenge,
+never one the client sent back — the replay defect this closes was a route
+that verified whatever the client said it had signed. `createDecoyVerifier()`
+gives a miss path the same cost as a hit, for hosts that want one;
+`challenges.unstored()` gives an unknown key id a challenge of the real shape
+that can never be claimed. The suite generates keys and signs with
+`@stonedogcode/mobile-auth` and verifies here, in both directions.
 
 ## Attempt limiting
 
