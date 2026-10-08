@@ -137,3 +137,61 @@ export function mayAuthenticateWith(enrolled: AuthMethod, used: AuthMethod | "re
   if (!AUTH_METHODS.includes(used)) return false;
   return methodAssurance(used) >= methodAssurance(enrolled);
 }
+
+/**
+ * A credential an account holds: the factor it satisfies, and the host's id
+ * for it. `device-key` is the on-device fingerprint key
+ * (`@stonedogcode/mobile-auth`); it satisfies NO step of any method, because
+ * it is a convenience layered on top of the method the user chose, never a
+ * way in by itself.
+ */
+export type CredentialFactor = "password" | "totp" | "webauthn" | "pin" | "device-key";
+
+export interface CredentialRecord {
+  id: string;
+  kind: CredentialFactor;
+}
+
+export type RemovalVerdict =
+  | { ok: true }
+  | { ok: false; reason: "last-way-in" | "not-found" | "unknown-method" };
+
+const STEP_NEEDS: Partial<Record<string, CredentialFactor>> = Object.freeze({
+  password: "password",
+  totp: "totp",
+  webauthn: "webauthn",
+  pin: "pin",
+});
+
+/**
+ * May the credential `removingId` be removed from an account whose method is
+ * `method` and whose credentials are `credentials`?
+ *
+ * Refuses when, after removal, some step of `requiredSteps(method)` would have
+ * no credential left to satisfy it — the last passkey of a `passkey_pin`
+ * account, the TOTP of a `password_totp` account. The `email-link` and
+ * `email-code` steps need no credential (their way in is the inbox), so an
+ * assurance-1 account may remove anything. Removing a `device-key` is always
+ * allowed: it satisfies no step, so it can never be the last way in.
+ *
+ * **Call it before every removal, and treat a refusal as final.** The server
+ * refuses removing the last way in; it does not offer to change the method
+ * instead — that is a separate, step-up-gated decision. An unknown method (a
+ * bad column value) refuses, in keeping with `methodAssurance`: failing
+ * toward "cannot remove" is recoverable, failing toward "removed" is not.
+ */
+export function canRemoveCredential(
+  method: AuthMethod,
+  credentials: readonly CredentialRecord[],
+  removingId: string,
+): RemovalVerdict {
+  if (!AUTH_METHODS.includes(method)) return { ok: false, reason: "unknown-method" };
+  if (!credentials.some((c) => c.id === removingId)) return { ok: false, reason: "not-found" };
+  const remaining = credentials.filter((c) => c.id !== removingId);
+  for (const step of requiredSteps(method)) {
+    const needs = STEP_NEEDS[step];
+    if (needs === undefined) continue;
+    if (!remaining.some((c) => c.kind === needs)) return { ok: false, reason: "last-way-in" };
+  }
+  return { ok: true };
+}

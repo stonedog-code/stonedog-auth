@@ -19,7 +19,9 @@ export type FactorKind =
   | "webauthn"
   | "emailed-token"
   /** A single-use recovery code standing in for a lost second factor (0.4.0). */
-  | "recovery-code";
+  | "recovery-code"
+  /** The on-device P-256 key answering a server challenge (0.5.0). Additive, like `recovery-code` was. */
+  | "device-key";
 
 /**
  * Who is being authenticated, as far as this package is concerned.
